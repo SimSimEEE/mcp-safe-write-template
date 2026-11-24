@@ -1,0 +1,14 @@
+mcp-safe-write-template
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This project includes material derived from harness-engine
+(https://github.com/SimSimEEE/harness-engine), licensed under the Apache License, Version 2.0:
+
+  - scripts/secret-scan.mjs: the secret pattern table and the sensitive-path list are ported from
+    skills/preflight/secret-patterns.json (version 4). Changes: Python inline flags rewritten as
+    JavaScript regex flags; an email-address warning and deny-term checks were added.
+  - .claude/harness/agents/test-runner.md: a modified copy of agents/test-runner.md
+    (jest steps replaced with vitest; provenance comment added).
+
+harness-engine itself is not vendored. .claude/harness/setup.sh fetches it at the commit pinned in
+.claude/harness/ENGINE_PIN into git-ignored directories.

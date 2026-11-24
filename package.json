@@ -1,0 +1,44 @@
+{
+  "name": "mcp-safe-write-template",
+  "version": "0.1.0",
+  "description": "MCP server template that gives AI agents safe write access: preview-confirm-execute, scoped keys, audit log",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "mcp-safe-write-template": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run lint && npm run typecheck && npm test && npm run secret-scan",
+    "secret-scan": "node scripts/secret-scan.mjs --all",
+    "keygen": "tsx scripts/keygen.ts",
+    "demo": "npm run build && tsx scripts/demo.ts",
+    "harness:setup": "bash .claude/harness/setup.sh",
+    "harness:off": "bash .claude/harness/setup.sh --remove",
+    "prepare": "node scripts/install-git-hooks.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^22.20.5",
+    "eslint": "^9.39.5",
+    "globals": "^17.14.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.74.0",
+    "vitest": "^3.2.7"
+  }
+}
