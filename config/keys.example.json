@@ -1,0 +1,33 @@
+{
+  "_comment": "DEMO KEYS. The secrets are published in README/docs, so never use this file outside local demos. Create real keys with `npm run keygen`.",
+  "keys": [
+    {
+      "id": "demo-reader",
+      "description": "DEMO ONLY. Read-only key.",
+      "scopes": [
+        "orders:read"
+      ],
+      "sha256": "e80aa01614cb8c7724e1c93aa0a8bd4adc7a88938edd691da95f66f867bbf191"
+    },
+    {
+      "id": "demo-support",
+      "description": "DEMO ONLY. Can read and add notes.",
+      "scopes": [
+        "orders:read",
+        "orders:write:note"
+      ],
+      "sha256": "68e85ceb058a72dc7aa63cd1a9ed02c251bd3a57af1fc32772bda457b0787698"
+    },
+    {
+      "id": "demo-operator",
+      "description": "DEMO ONLY. Can read, change status, cancel and add notes.",
+      "scopes": [
+        "orders:read",
+        "orders:write:status",
+        "orders:write:cancel",
+        "orders:write:note"
+      ],
+      "sha256": "bec9854971349870e434391a8ee1d71b7a5c237cc43320288e0864014dfed299"
+    }
+  ]
+}

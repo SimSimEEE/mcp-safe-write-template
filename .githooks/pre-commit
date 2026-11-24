@@ -1,0 +1,9 @@
+#!/bin/sh
+# Base layer gate (works without Claude Code). Bypass only with intent: git commit --no-verify
+set -e
+echo "pre-commit: secret scan (staged lines)"
+node scripts/secret-scan.mjs --staged
+echo "pre-commit: lint, typecheck, test"
+npm run -s lint
+npm run -s typecheck
+npx vitest run --reporter=dot

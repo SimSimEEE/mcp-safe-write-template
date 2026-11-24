@@ -1,0 +1,18 @@
+#!/bin/sh
+# Commit messages in this repo are English, with a short subject line.
+msg_file="$1"
+subject=$(grep -v '^#' "$msg_file" | sed -n '/./{p;q;}')
+if [ -z "$subject" ]; then
+  echo "commit-msg: empty subject" >&2; exit 1
+fi
+if [ "${#subject}" -gt 72 ]; then
+  echo "commit-msg: subject is ${#subject} chars (max 72)" >&2; exit 1
+fi
+# Reject Hangul anywhere in the message (comment lines excluded). node, not grep -P: BSD grep lacks -P.
+if ! node -e '
+  const t = require("fs").readFileSync(process.argv[1], "utf8").split("\n").filter((l) => !l.startsWith("#")).join("\n");
+  process.exit(/[\uAC00-\uD7A3\u3131-\u318E]/.test(t) ? 1 : 0);
+' "$msg_file"; then
+  echo "commit-msg: write commit messages in English (Korean belongs in docs/ko and PR bodies)" >&2; exit 1
+fi
+exit 0

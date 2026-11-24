@@ -1,0 +1,19 @@
+node_modules/
+dist/
+coverage/
+*.log
+# runtime data
+data/
+audit/
+*.jsonl
+!docs/**/*.jsonl
+# real key files (only the example is committed)
+config/keys.json
+# local deny-list for the pre-commit scanner (never commit it)
+.deny-terms
+# harness-engine checkout and generated Claude Code files (see .claude/harness/README.md)
+.claude/harness-engine/
+.claude/agents/
+.claude/skills/
+.claude/hooks/
+.claude/settings.local.json

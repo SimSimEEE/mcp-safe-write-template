@@ -1,0 +1,7 @@
+#!/bin/sh
+# Full check before anything leaves the machine.
+set -e
+node scripts/secret-scan.mjs --all
+npm run -s lint
+npm run -s typecheck
+npx vitest run --reporter=dot

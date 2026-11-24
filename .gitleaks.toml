@@ -1,0 +1,10 @@
+# gitleaks config for CI (second-opinion scanner; the primary one is scripts/secret-scan.mjs).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public demo keys and generated demo output"
+regexes = [
+  '''demo-(reader|support|operator)-key-NOT-A-SECRET''',
+  '''sk-pasted-by-mistake''',
+]
