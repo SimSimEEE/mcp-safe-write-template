@@ -195,9 +195,11 @@ harness-engine 은 원래 `~/.claude` 에 사용자 범위로 설치합니다. �
 적용했습니다.
 
 - `.claude/harness/ENGINE_PIN`: 엔진 버전과 커밋 고정
-- `.claude/harness/setup.sh` (`npm run harness:setup`, Claude Code 클라우드 세션에서는 자동 실행): 고정된
-  커밋을 받아 `.claude/` 아래 git 제외 폴더에 배치. `~/.claude` 는 건드리지 않음
-- `.claude/settings.json`: 엔진 훅을 `.claude/harness/hook.sh` 를 거쳐 등록. 설치 전에는 아무것도 하지 않고,
+- **이 층은 켜야 동작합니다.** `npm run harness:setup` 으로 켜면 `.claude/harness/setup.sh` 가 고정된 커밋을 받아
+  `.claude/` 아래 git 제외 폴더에 배치합니다(`~/.claude` 는 건드리지 않음). `npm run harness:off` 로 다시 끕니다.
+  자동으로 켜지 않는 이유는 비용입니다. 게이트를 거치는 커밋마다 검사 에이전트 여러 개가 돌기 때문에, 켤지는
+  체크아웃마다 직접 정합니다.
+- `.claude/settings.json`: 엔진 훅을 `.claude/harness/hook.sh` 를 거쳐 등록. 꺼져 있으면 아무것도 하지 않고,
   사용자 범위에 이미 등록돼 있으면 비켜섬
 - `.claude/harness/categories/ts-mcp-server/`: 이 레포를 어떻게 테스트할지(vitest, 시크릿 스캔, 변이 검사)
   엔진에 알려 주는 카테고리. `.claude/harness/agents/test-runner.md` 는 엔진의 jest 단계를 vitest 로 바꾼 것

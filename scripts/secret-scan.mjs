@@ -103,30 +103,32 @@ function collect(mode, arg) {
       });
   }
   const diffArgs = mode === "--staged" ? ["diff", "--cached"] : ["diff", arg];
-  const out = git(...diffArgs, "-U0", "--no-color", "--no-ext-diff", "--diff-filter=ACMR", "--text");
-  const files = [];
-  let cur = null;
+  // Paths come from a NUL-separated list, never from diff headers: git quotes names with non-ASCII
+  // characters and appends a TAB to names with spaces there, which would break the path checks.
+  const paths = git(...diffArgs, "--name-only", "-z", "--diff-filter=ACMR").split("\0").filter(Boolean);
+  return paths.map((path) => {
+    const out = git(...diffArgs, "-U0", "--no-color", "--no-ext-diff", "--text", "--", path);
+    return { path, lines: addedLines(out) };
+  });
+}
+
+/** Added lines of a single-file `-U0` diff, with their line numbers in the new file. */
+function addedLines(out) {
+  const lines = [];
   let n = 0;
-  // `+++ ` is a file header only between `diff --git` and the first `@@`. Inside a hunk, an added line
-  // whose text starts with "++ " also looks like `+++ …` and must be scanned as content.
-  let inHeader = false;
+  // Before the first `@@` everything is header. Inside a hunk, an added line whose text starts with
+  // "++ " looks like a `+++ ` header and must still be scanned as content.
+  let inHunk = false;
   for (const line of out.split("\n")) {
-    if (line.startsWith("diff --git ")) {
-      inHeader = true;
-      cur = null;
-    } else if (inHeader && line.startsWith("+++ ")) {
-      const p = line.slice(4);
-      cur = p === "/dev/null" ? null : { path: p.replace(/^b\//, ""), lines: [] };
-      if (cur) files.push(cur);
-    } else if (line.startsWith("@@")) {
-      inHeader = false;
+    if (line.startsWith("@@")) {
+      inHunk = true;
       n = Number(/\+(\d+)/.exec(line)?.[1] ?? 0);
-    } else if (cur && line.startsWith("+")) {
-      cur.lines.push({ n, text: line.slice(1) });
+    } else if (inHunk && line.startsWith("+")) {
+      lines.push({ n, text: line.slice(1) });
       n++;
     }
   }
-  return files;
+  return lines;
 }
 
 const argv = process.argv.slice(2);

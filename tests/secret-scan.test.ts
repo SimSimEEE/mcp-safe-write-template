@@ -39,6 +39,20 @@ describe("secret-scan", () => {
     expect(r.out).toContain("a.ts:2  aws-access-key");
   });
 
+  it("applies path checks to staged names with spaces or non-ASCII characters", () => {
+    for (const name of ["my prod.env", "é.env"]) {
+      const r = scan(repoWith({ [name]: "X=1\n" }), "--staged");
+      expect(r.code, name).toBe(1);
+      expect(r.out).toContain(`${name}:0  sensitive-path(*.env)`);
+    }
+  });
+
+  it("reports content findings under the real path when the name has non-ASCII characters", () => {
+    const r = scan(repoWith({ "설정 파일.ts": `const k = "${fakeAwsKey}";\n` }), "--staged");
+    expect(r.code).toBe(1);
+    expect(r.out).toContain("설정 파일.ts:1  aws-access-key");
+  });
+
   it("blocks deny terms supplied via env, case-insensitively, without storing them in the repo", () => {
     const dir = repoWith({ "notes.md": "built for ACME-Widgets internal tool\n" });
     expect(scan(dir, "--staged").code).toBe(0);

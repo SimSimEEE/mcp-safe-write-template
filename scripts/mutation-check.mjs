@@ -128,8 +128,8 @@ const MUTATIONS = [
   {
     id: "scan-header-anywhere",
     file: "scripts/secret-scan.mjs",
-    from: '} else if (inHeader && line.startsWith("+++ ")) {',
-    to: '} else if (line.startsWith("+++ ")) {',
+    from: '} else if (inHunk && line.startsWith("+")) {',
+    to: '} else if (inHunk && line.startsWith("+") && !line.startsWith("+++ ")) {',
     expect: "added '++ ' lines are scanned",
   },
   {

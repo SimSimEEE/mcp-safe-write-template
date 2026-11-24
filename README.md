@@ -218,10 +218,12 @@ harness-engine normally installs user-wide into `~/.claude`. This repo instead a
 **overlay at project scope**:
 
 - `.claude/harness/ENGINE_PIN` pins the engine version and commit.
-- `.claude/harness/setup.sh` (`npm run harness:setup`; runs by itself in Claude Code cloud sessions)
-  fetches that commit and lays it out under `.claude/` in git-ignored folders. It never touches `~/.claude`.
+- **The layer is opt-in.** `npm run harness:setup` turns it on: `.claude/harness/setup.sh` fetches that
+  commit and lays it out under `.claude/` in git-ignored folders (it never touches `~/.claude`).
+  `npm run harness:off` removes it again. Nothing runs setup automatically, because every gated commit
+  starts several review agents and that cost should be a choice.
 - `.claude/settings.json` registers the engine's hooks through `.claude/harness/hook.sh`, which does nothing
-  until setup has run, and steps aside when the engine is already registered user-wide.
+  while the layer is off, and steps aside when the engine is already registered user-wide.
 - `.claude/harness/categories/ts-mcp-server/` tells the engine how to test this repo (vitest, secret scan,
   mutation check), and `.claude/harness/agents/test-runner.md` swaps the engine's jest steps for vitest.
 - `.claude/harness/profiles/` pins this repo to that category (created with the engine's `profile.sh`).

@@ -24,6 +24,7 @@
     "keygen": "tsx scripts/keygen.ts",
     "demo": "npm run build && tsx scripts/demo.ts",
     "harness:setup": "bash .claude/harness/setup.sh",
+    "harness:off": "bash .claude/harness/setup.sh --remove",
     "prepare": "node scripts/install-git-hooks.mjs"
   },
   "dependencies": {

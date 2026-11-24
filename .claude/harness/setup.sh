@@ -1,7 +1,11 @@
 #!/bin/bash
 # Lay out harness-engine for THIS project under .claude/ (project scope, not ~/.claude).
 #
-#   bash .claude/harness/setup.sh          # or: npm run harness:setup
+#   bash .claude/harness/setup.sh            # turn on  (npm run harness:setup)
+#   bash .claude/harness/setup.sh --remove   # turn off (npm run harness:off)
+#
+# The Claude Code layer is opt-in: nothing runs it automatically, not even in cloud sessions.
+# Each /preflight run starts several agents, so the cost is a deliberate choice per checkout.
 #
 # What it does
 #   1. Fetches harness-engine at the commit pinned in .claude/harness/ENGINE_PIN into
@@ -21,6 +25,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 OV="$ROOT/.claude/harness"
 ENGINE="$ROOT/.claude/harness-engine"
 URL="${HARNESS_ENGINE_URL:-https://github.com/SimSimEEE/harness-engine.git}"
+
+if [ "${1:-}" = --remove ]; then
+    rm -rf "${ROOT:?}/.claude/agents" "${ROOT:?}/.claude/skills" "${ROOT:?}/.claude/hooks" "$ENGINE"
+    echo "harness: off — removed the engine copy; .claude/settings.json hooks are no-ops until setup runs again"
+    exit 0
+fi
+[ $# -eq 0 ] || { echo "usage: setup.sh [--remove]" >&2; exit 2; }
 
 pin_version=$(sed -n 's/^version=//p' "$OV/ENGINE_PIN")
 pin_commit=$(sed -n 's/^commit=//p' "$OV/ENGINE_PIN")
