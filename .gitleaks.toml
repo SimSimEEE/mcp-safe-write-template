@@ -3,8 +3,11 @@
 useDefault = true
 
 [allowlist]
-description = "Public demo keys and generated demo output"
+description = "Public demo keys, generated demo output, and scanner test fixtures"
 regexes = [
   '''demo-(reader|support|operator)-key-NOT-A-SECRET''',
   '''sk-pasted-by-mistake''',
+  # tests/secret-scan.test.ts: a deliberately secret-looking value that checks the repo scanner
+  # reports "suspect" findings. Already in history, so it is allowlisted rather than rewritten.
+  '''abcdefgh12345''',
 ]
