@@ -133,6 +133,27 @@ const MUTATIONS = [
     expect: "added '++ ' lines are scanned",
   },
   {
+    id: "scan-path-not-masked",
+    file: "scripts/secret-scan.mjs",
+    from: 'for (const h of hits) console.log(`${h.grade.padEnd(7)} ${show(h.file)}:${h.line}  ${h.pattern}`);',
+    to: 'for (const h of hits) console.log(`${h.grade.padEnd(7)} ${h.file}:${h.line}  ${h.pattern}`);',
+    expect: "deny term never printed in a path",
+  },
+  {
+    id: "history-skips-commit-messages",
+    file: "scripts/secret-scan.mjs",
+    from: 'if (match(body ?? "")) out.push(',
+    to: 'if (false) out.push(',
+    expect: "commit messages scanned",
+  },
+  {
+    id: "history-only-current-tree",
+    file: "scripts/secret-scan.mjs",
+    from: 'git("rev-list", "--objects", "--all")',
+    to: 'git("ls-tree", "-r", "--format=%(objectname) %(path)", "HEAD")',
+    expect: "deleted file versions scanned",
+  },
+  {
     id: "scan-deny-terms-ignored",
     file: "scripts/secret-scan.mjs",
     from: "const deny = denyTerms().map((t) => ({ t, lc: t.toLowerCase() }));",

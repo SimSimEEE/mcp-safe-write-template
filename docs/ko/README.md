@@ -183,7 +183,9 @@ npx @modelcontextprotocol/inspector --cli -e MCP_KEYS_FILE=config/keys.example.j
 - `scripts/secret-scan.mjs` 는 harness-engine 결정론 스캐너의 패턴 표를 옮겨 쓰고, 여기에 **금지어**(회사명,
   고객사명처럼 레포에 절대 들어가면 안 되는 이름) 검사를 더했습니다. 금지어 목록은 커밋하지 않습니다 —
   목록 자체가 유출이기 때문입니다. `DENY_TERMS` 환경 변수(CI 에서는 레포 시크릿)나 git 에서 제외된
-  `.deny-terms` 파일로 넣습니다.
+  `.deny-terms` 파일로 넣습니다. `--history` 는 이력에 있었던 모든 파일 버전(지운 파일 포함)과 커밋 메시지를
+  금지어로 검사합니다. 나중에 지운 이름도 공개 전에 잡기 위해서입니다. 공개 레포의 CI 로그는 누구나 볼 수
+  있으므로, 출력하는 경로 속 금지어는 `***` 로 가립니다.
 
 **2. Claude Code 층 — [harness-engine](https://github.com/SimSimEEE/harness-engine)**
 

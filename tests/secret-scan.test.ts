@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -62,6 +62,13 @@ describe("secret-scan", () => {
     expect(r.out).not.toMatch(/acme/i);
   });
 
+  it("masks a deny term inside a reported file name", () => {
+    const r = scan(repoWith({ "acme-widgets-notes.md": "x\n" }), "--all", { DENY_TERMS: "Acme-Widgets" });
+    expect(r.code).toBe(1);
+    expect(r.out).toContain("***-notes.md:0  deny-term(path)");
+    expect(r.out).not.toMatch(/acme/i);
+  });
+
   it("blocks sensitive paths and passes a clean tree", () => {
     expect(scan(repoWith({ "prod.env": "X=1\n" }), "--all").code).toBe(1);
     expect(scan(repoWith({ "ok.ts": "export const x = 1;\n" }), "--all").code).toBe(0);
@@ -71,5 +78,49 @@ describe("secret-scan", () => {
     const dir = repoWith({ "c.json": '{ "api_key": "abcdefgh12345" }\n' });
     expect(scan(dir, "--all").code).toBe(0);
     expect(spawnSync("node", [SCANNER, "--all", "--strict"], { cwd: dir }).status).toBe(1);
+  });
+
+  describe("--history", () => {
+    /** A repo whose deny term exists only in history: in a deleted file, an old path and a commit message. */
+    function repoWithHistory() {
+      const dir = mkdtempSync(join(tmpdir(), "scan-hist-"));
+      const g = (...a: string[]) =>
+        execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...a], { cwd: dir });
+      g("init", "-q");
+      writeFileSync(join(dir, "notes.md"), "built for Acme-Widgets\n");
+      writeFileSync(join(dir, "acme-widgets.txt"), "x\n");
+      g("add", ".");
+      g("commit", "-q", "-m", "first");
+      rmSync(join(dir, "notes.md"));
+      rmSync(join(dir, "acme-widgets.txt"));
+      writeFileSync(join(dir, "clean.md"), "nothing here\n");
+      g("add", "-A");
+      g("commit", "-q", "-m", "second: remove the ACME-WIDGETS notes");
+      return dir;
+    }
+    const env = { DENY_TERMS: "acme-widgets" };
+
+    it("finds deny terms that only exist in history, which --all cannot see", () => {
+      const dir = repoWithHistory();
+      expect(scan(dir, "--all", env).code).toBe(0);
+      const r = scan(dir, "--history", env);
+      expect(r.code).toBe(1);
+      expect(r.out).toMatch(/notes\.md \(blob [0-9a-f]{7}\) {2}deny-term/);
+      expect(r.out).toMatch(/\(blob [0-9a-f]{7}\) {2}deny-term\(path\)/);
+      expect(r.out).toMatch(/<commit message [0-9a-f]{7}> {2}deny-term/);
+    });
+
+    it("never prints the deny term, not even inside a file name", () => {
+      const r = scan(repoWithHistory(), "--history", env);
+      expect(r.out).toContain("***.txt");
+      expect(r.out).not.toMatch(/acme/i);
+    });
+
+    it("passes a clean history and is a no-op without deny terms", () => {
+      expect(scan(repoWithHistory(), "--history", { DENY_TERMS: "not-in-repo" }).code).toBe(0);
+      const r = scan(repoWithHistory(), "--history", { DENY_TERMS: "" });
+      expect(r.code).toBe(0);
+      expect(r.out).toContain("0 deny terms, nothing to check");
+    });
   });
 });

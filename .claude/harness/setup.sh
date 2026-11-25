@@ -18,7 +18,7 @@
 # What it does NOT do: touch ~/.claude or ~/.claude/settings.json. Hook registration for this project
 # lives in the tracked .claude/settings.json (through .claude/harness/hook.sh).
 # Why not the engine's install.sh: it installs user-wide and merges into ~/.claude/settings.json; this
-# template must work as a self-contained repo (cloud sessions, client deliveries). See README.md here.
+# template must work as a self-contained repo (cloud sessions, copies reused in other projects). See README.md here.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"

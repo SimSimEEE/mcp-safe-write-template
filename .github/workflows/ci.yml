@@ -63,6 +63,7 @@ jobs:
           DENY_TERMS: ${{ secrets.DENY_TERMS }}
         run: |
           node scripts/secret-scan.mjs --all
+          node scripts/secret-scan.mjs --history
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             node scripts/secret-scan.mjs --range "origin/${{ github.base_ref }}...HEAD"
           fi
