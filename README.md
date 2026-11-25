@@ -206,7 +206,9 @@ The repository is maintained with two layers of checks.
 - `scripts/secret-scan.mjs` uses the pattern table of harness-engine's deterministic scanner, plus
   **deny terms**: names that must never appear in the repo (an employer, a client). The list itself is
   never committed. It comes from the `DENY_TERMS` environment variable (a CI repository secret) or a
-  git-ignored `.deny-terms` file.
+  git-ignored `.deny-terms` file. `--history` checks deny terms in every file version and commit message
+  ever reachable, deleted files included, so a name removed later is still caught before the repo goes
+  public. Reported paths have deny terms masked as `***`, because CI logs of a public repo are public.
 
 **2. Claude Code layer — [harness-engine](https://github.com/SimSimEEE/harness-engine).**
 

@@ -5,6 +5,8 @@
  *   node scripts/secret-scan.mjs --staged          # added lines of the staged diff (pre-commit)
  *   node scripts/secret-scan.mjs --range A..B      # added lines between two revisions (CI on PRs)
  *   node scripts/secret-scan.mjs --all             # every tracked file (CI, before going public)
+ *   node scripts/secret-scan.mjs --history         # deny terms in every file version and commit
+ *                                                  # message ever reachable (before going public)
  *
  * Grades (taken from harness-engine's secret-patterns.json v4, see NOTICE):
  *   error    -> exit 1          suspect / warning -> printed, exit 0 (use --strict to fail)
@@ -133,9 +135,9 @@ function addedLines(out) {
 
 const argv = process.argv.slice(2);
 const strict = argv.includes("--strict");
-const mode = argv.find((a) => ["--staged", "--all", "--range"].includes(a));
+const mode = argv.find((a) => ["--staged", "--all", "--range", "--history"].includes(a));
 if (!mode) {
-  console.error("usage: secret-scan.mjs --staged | --all | --range <a>..<b> [--strict]");
+  console.error("usage: secret-scan.mjs --staged | --all | --range <a>..<b> | --history [--strict]");
   process.exit(2);
 }
 const rangeArg = mode === "--range" ? argv[argv.indexOf("--range") + 1] : undefined;
@@ -145,6 +147,10 @@ if (mode === "--range" && !rangeArg) {
 }
 
 const deny = denyTerms().map((t) => ({ t, lc: t.toLowerCase() }));
+/** Paths are printed, and CI logs can be public: replace any deny term inside a path with ***. */
+const show = (path) =>
+  deny.reduce((p, d) => p.replace(new RegExp(d.t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), "***"), path);
+if (mode === "--history") process.exit(scanHistory(deny));
 const hits = [];
 let scannedLines = 0;
 const files = collect(mode, rangeArg);
@@ -170,9 +176,74 @@ for (const f of files) {
 }
 
 const failing = hits.filter((h) => h.grade === "error" || (strict && h.grade !== "error"));
-for (const h of hits) console.log(`${h.grade.padEnd(7)} ${h.file}:${h.line}  ${h.pattern}`);
+for (const h of hits) console.log(`${h.grade.padEnd(7)} ${show(h.file)}:${h.line}  ${h.pattern}`);
 console.log(
   `secret-scan ${mode}: ${files.length} files, ${scannedLines} lines, ${deny.length} deny terms, ` +
     `${hits.length} findings, ${failing.length} blocking`,
 );
 process.exit(failing.length ? 1 : 0);
+
+/**
+ * --history: deny terms only, across everything a clone of this repo would contain — every
+ * version of every file reachable from any ref (deleted files included), every path, and every
+ * commit message. Secret patterns in history are gitleaks' job in CI. Returns the exit code.
+ */
+function scanHistory(terms) {
+  if (!terms.length) {
+    console.log("secret-scan --history: 0 deny terms, nothing to check (set DENY_TERMS or .deny-terms)");
+    return 0;
+  }
+  const out = [];
+  const match = (text) => {
+    const lc = text.toLowerCase();
+    return terms.some((d) => lc.includes(d.lc));
+  };
+
+  // First path each blob was seen at, from `rev-list --objects` (object id, space, path).
+  const pathOf = new Map();
+  for (const line of git("rev-list", "--objects", "--all").split("\n")) {
+    const i = line.indexOf(" ");
+    if (i > 0 && !pathOf.has(line.slice(0, i))) pathOf.set(line.slice(0, i), line.slice(i + 1));
+  }
+  const ids = [...pathOf.keys()];
+  const types = execFileSync("git", ["cat-file", "--batch-check=%(objectname) %(objecttype)"], {
+    input: ids.join("\n") + "\n",
+    maxBuffer: 256 * 1024 * 1024,
+  })
+    .toString("utf8")
+    .split("\n");
+  const blobs = types.filter((l) => l.endsWith(" blob")).map((l) => l.split(" ")[0]);
+
+  // Read all blobs in one process: "<id> blob <size>\n<content>\n" per object.
+  const buf = blobs.length
+    ? execFileSync("git", ["cat-file", "--batch"], { input: blobs.join("\n") + "\n", maxBuffer: 1024 * 1024 * 1024 })
+    : Buffer.alloc(0);
+  let pos = 0;
+  for (const id of blobs) {
+    const nl = buf.indexOf(10, pos);
+    const size = Number(buf.subarray(pos, nl).toString("utf8").split(" ")[2]);
+    const content = buf.subarray(nl + 1, nl + 1 + size);
+    pos = nl + 1 + size + 1;
+    const path = pathOf.get(id) ?? id;
+    if (match(path)) out.push(`error   ${show(path)} (blob ${id.slice(0, 7)})  deny-term(path)`);
+    if (!content.includes(0) && match(content.toString("utf8"))) {
+      out.push(`error   ${show(path)} (blob ${id.slice(0, 7)})  deny-term`);
+    }
+  }
+
+  const commits = git("log", "--all", "--format=%H%x00%B%x01").split("\x01");
+  let nCommits = 0;
+  for (const c of commits) {
+    const [id, body] = c.replace(/^\n/, "").split("\0");
+    if (!id) continue;
+    nCommits++;
+    if (match(body ?? "")) out.push(`error   <commit message ${id.slice(0, 7)}>  deny-term`);
+  }
+
+  for (const l of out) console.log(l);
+  console.log(
+    `secret-scan --history: ${blobs.length} file versions, ${nCommits} commits, ${terms.length} deny terms, ` +
+      `${out.length} findings, ${out.length} blocking`,
+  );
+  return out.length ? 1 : 0;
+}
