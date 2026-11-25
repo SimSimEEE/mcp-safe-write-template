@@ -80,6 +80,35 @@ describe("secret-scan", () => {
     expect(spawnSync("node", [SCANNER, "--all", "--strict"], { cwd: dir }).status).toBe(1);
   });
 
+  describe("shared allowlist (.gitleaks.toml)", () => {
+    const toml = "[allowlist]\nregexes = [\n  '''demo-reader-key-NOT-A-SECRET''',\n]\n";
+
+    it("silences a suspect finding whose matched value is allowlisted, and only that one", () => {
+      const dir = repoWith({
+        ".gitleaks.toml": toml,
+        "c.json": `{ "api_key": "demo-reader-key-NOT-A-SECRET" }\n{ "api_key": "${["real", "Looking12345"].join("")}" }\n`,
+      });
+      const r = scan(dir, "--all");
+      expect(r.out).not.toContain("c.json:1");
+      expect(r.out).toContain("c.json:2  secret-like-quoted-key");
+    });
+
+    it("never silences an error-grade secret, even on a line with an allowlisted value", () => {
+      const dir = repoWith({
+        ".gitleaks.toml": toml,
+        "a.ts": `const demo = "demo-reader-key-NOT-A-SECRET"; const k = "${fakeAwsKey}";\n`,
+      });
+      const r = scan(dir, "--all");
+      expect(r.code).toBe(1);
+      expect(r.out).toContain("a.ts:1  aws-access-key");
+    });
+
+    it("fails closed when an allowlist regex does not compile", () => {
+      const dir = repoWith({ ".gitleaks.toml": "[allowlist]\nregexes = [\n  '''(unclosed''',\n]\n", "ok.ts": "x\n" });
+      expect(scan(dir, "--all").code).toBe(2);
+    });
+  });
+
   describe("--history", () => {
     /** A repo whose deny term exists only in history: in a deleted file, an old path and a commit message. */
     function repoWithHistory() {
