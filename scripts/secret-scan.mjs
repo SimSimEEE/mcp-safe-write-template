@@ -225,11 +225,20 @@ function scanHistory(terms) {
     const content = buf.subarray(nl + 1, nl + 1 + size);
     pos = nl + 1 + size + 1;
     const path = pathOf.get(id) ?? id;
-    if (match(path)) out.push(`error   ${show(path)} (blob ${id.slice(0, 7)})  deny-term(path)`);
     if (!content.includes(0) && match(content.toString("utf8"))) {
       out.push(`error   ${show(path)} (blob ${id.slice(0, 7)})  deny-term`);
     }
   }
+
+  // Every path any commit touched. pathOf names each blob once, so a deny-term path whose
+  // content also exists at a clean path would be missed if paths were only checked there.
+  const paths = new Set(
+    git("log", "--all", "--root", "-m", "--no-renames", "--format=", "--name-only", "-z")
+      .split("\0")
+      .map((p) => p.replace(/^\n+/, ""))
+      .filter(Boolean),
+  );
+  for (const p of paths) if (match(p)) out.push(`error   ${show(p)}  deny-term(path)`);
 
   const commits = git("log", "--all", "--format=%H%x00%B%x01").split("\x01");
   let nCommits = 0;
@@ -242,7 +251,7 @@ function scanHistory(terms) {
 
   for (const l of out) console.log(l);
   console.log(
-    `secret-scan --history: ${blobs.length} file versions, ${nCommits} commits, ${terms.length} deny terms, ` +
+    `secret-scan --history: ${blobs.length} file versions, ${paths.size} paths, ${nCommits} commits, ${terms.length} deny terms, ` +
       `${out.length} findings, ${out.length} blocking`,
   );
   return out.length ? 1 : 0;

@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -106,8 +106,28 @@ describe("secret-scan", () => {
       const r = scan(dir, "--history", env);
       expect(r.code).toBe(1);
       expect(r.out).toMatch(/notes\.md \(blob [0-9a-f]{7}\) {2}deny-term/);
-      expect(r.out).toMatch(/\(blob [0-9a-f]{7}\) {2}deny-term\(path\)/);
+      expect(r.out).toContain("***.txt  deny-term(path)");
       expect(r.out).toMatch(/<commit message [0-9a-f]{7}> {2}deny-term/);
+    });
+
+    it("finds a deny-term path whose content also exists at a clean path", () => {
+      const dir = mkdtempSync(join(tmpdir(), "scan-hist-"));
+      const g = (...a: string[]) =>
+        execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@example.com", ...a], { cwd: dir });
+      g("init", "-q");
+      writeFileSync(join(dir, "a.txt"), "x\n");
+      g("add", ".");
+      g("commit", "-q", "-m", "one");
+      mkdirSync(join(dir, "acme-widgets"));
+      writeFileSync(join(dir, "acme-widgets", "b.txt"), "x\n");
+      g("add", ".");
+      g("commit", "-q", "-m", "two");
+      g("rm", "-q", "-r", "acme-widgets");
+      g("commit", "-q", "-m", "three");
+      const r = scan(dir, "--history", env);
+      expect(r.code).toBe(1);
+      expect(r.out).toContain("***/b.txt  deny-term(path)");
+      expect(r.out).not.toMatch(/acme/i);
     });
 
     it("never prints the deny term, not even inside a file name", () => {
