@@ -42,7 +42,7 @@ The tests had really run and passed. But the marker I wrote in the category was 
 
 **4. Pre-publication check: where scanners don’t look.** PR descriptions (including their edit history), past commit history, and file paths printed in CI logs were the gaps. I added a `--history` mode that checks deny terms across all of history, and paths in the output now have deny terms masked as `***`.
 
-Whether the tests actually bite is checked by a mutation script: it breaks each safety rule on purpose and requires the matching test to fail. It currently catches **22 out of 22**:
+Whether the tests actually bite is checked by a mutation script: it breaks each safety rule on purpose and requires the matching test to fail. When this was written it caught **22 out of 22**; the count grows as rules are added, and every one must be caught:
 
 ```text
 $ node scripts/mutation-check.mjs
