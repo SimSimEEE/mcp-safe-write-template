@@ -154,6 +154,13 @@ const MUTATIONS = [
     expect: "deleted file versions scanned",
   },
   {
+    id: "history-paths-unscanned",
+    file: "scripts/secret-scan.mjs",
+    from: "for (const p of paths) if (match(p)) out.push(",
+    to: "for (const p of paths) if (false) out.push(",
+    expect: "deny-term path whose content also exists at a clean path",
+  },
+  {
     id: "scan-deny-terms-ignored",
     file: "scripts/secret-scan.mjs",
     from: "const deny = denyTerms().map((t) => ({ t, lc: t.toLowerCase() }));",
