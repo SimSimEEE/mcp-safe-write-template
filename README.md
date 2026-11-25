@@ -231,6 +231,8 @@ harness-engine normally installs user-wide into `~/.claude`. This repo instead a
 - `.claude/harness/profiles/` pins this repo to that category (created with the engine's `profile.sh`).
 
 Details and the reason for each adaptation: [`.claude/harness/README.md`](.claude/harness/README.md).
+What happened while applying it (gate findings, a refused record, the pre-publication check):
+[`docs/case-study.md`](docs/case-study.md).
 
 ## Limits
 
