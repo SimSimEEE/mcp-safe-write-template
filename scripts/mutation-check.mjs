@@ -168,6 +168,20 @@ const MUTATIONS = [
     expect: "deny terms block",
   },
   {
+    id: "scan-allowlist-hides-errors",
+    file: "scripts/secret-scan.mjs",
+    from: 'if (p.grade !== "error" && SHARED_ALLOW.some((a) => a.test(m[0]))) continue;',
+    to: "if (SHARED_ALLOW.some((a) => a.test(text))) continue;",
+    expect: "allowlisted value never hides an error-grade secret",
+  },
+  {
+    id: "scan-allowlist-ignored",
+    file: "scripts/secret-scan.mjs",
+    from: "const SHARED_ALLOW = sharedAllowlist();",
+    to: "const SHARED_ALLOW = [];",
+    expect: "allowlisted suspect value is silenced",
+  },
+  {
     id: "scan-errors-not-blocking",
     file: "scripts/secret-scan.mjs",
     from: 'const failing = hits.filter((h) => h.grade === "error" || (strict && h.grade !== "error"));',

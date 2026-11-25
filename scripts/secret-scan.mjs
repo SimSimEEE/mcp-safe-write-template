@@ -18,6 +18,11 @@
  *
  * Values are never printed: only file, line, pattern name and grade.
  * A line containing `secret-scan: allow` is skipped (use sparingly, review in PR).
+ *
+ * Known-safe example values (public demo keys, redaction markers, test fixtures) are listed once,
+ * in the `[allowlist] regexes` of `.gitleaks.toml`, and shared with gitleaks. They silence only
+ * suspect/warning findings whose matched text contains an allowlisted value — never error grade,
+ * so an allowlisted value cannot hide a real key on the same line.
  */
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
@@ -63,6 +68,23 @@ const SENSITIVE_PATHS = [
 
 // Addresses that are fine to publish (attribution lines, placeholders).
 const EMAIL_ALLOW = [/^noreply@anthropic\.com$/i, /@example\.(com|org|net)$/i, /^git@github\.com$/i];
+
+/** The `[allowlist] regexes = [...]` entries of .gitleaks.toml (TOML literal strings only). */
+function sharedAllowlist() {
+  if (!existsSync(".gitleaks.toml")) return [];
+  const toml = readFileSync(".gitleaks.toml", "utf8");
+  const section = toml.split(/^\[allowlist\]\s*$/m)[1]?.split(/^\[/m)[0] ?? "";
+  const list = section.match(/^regexes\s*=\s*\[([\s\S]*?)^\]/m)?.[1] ?? "";
+  return [...list.matchAll(/'''([\s\S]*?)'''/g)].map((m) => {
+    try {
+      return new RegExp(m[1]);
+    } catch {
+      console.error(`.gitleaks.toml: allowlist regex does not compile: ${m[1]}`);
+      process.exit(2);
+    }
+  });
+}
+const SHARED_ALLOW = sharedAllowlist();
 
 function globToRe(glob) {
   let re = "";
@@ -168,6 +190,7 @@ for (const f of files) {
       const m = p.re.exec(text);
       if (!m) continue;
       if (p.name === "email-address" && EMAIL_ALLOW.some((a) => a.test(m[0]))) continue;
+      if (p.grade !== "error" && SHARED_ALLOW.some((a) => a.test(m[0]))) continue;
       hits.push({ file: f.path, line: n, pattern: p.name, grade: p.grade });
     }
     const lc = text.toLowerCase();
